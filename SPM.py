@@ -104,8 +104,6 @@ class App(QWidget):
         except Exception:
             QMessageBox.information(self, 'Error!', 'Not A Document File!')
 
-
-
     # nltk.download('punkt')  # if necessary...
 
     stemmer = nltk.stem.porter.PorterStemmer()
@@ -125,7 +123,7 @@ class App(QWidget):
         tfidf = self.vectorizer.fit_transform([text11, text22])
 
         n = (((tfidf * tfidf.T) * 100).A)[0, 1]
-        return '%.3f%% ' % n
+        return '%.3f%% ' %n
 
     def check(self):
         self.notify.show()
