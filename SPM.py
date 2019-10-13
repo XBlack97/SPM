@@ -1,16 +1,17 @@
 import os
+import shutil
+import string
 import subprocess
 import sys
 from os.path import expanduser
 from pathlib import Path
-import shutil
 
 import docx
 import nltk
-import string
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QStandardItemModel
-from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QMessageBox, QLabel, QWidget, QGroupBox, QTreeView, QPushButton, QGridLayout, QVBoxLayout, \
+    QFileDialog, QMenu, QApplication
 from sklearn.feature_extraction.text import TfidfVectorizer
 
 
@@ -44,7 +45,7 @@ class App(QWidget):
         self.dataView.setContextMenuPolicy(Qt.CustomContextMenu)
         self.dataView.customContextMenuRequested.connect(self.tabMenu)
 
-        self.dataBtn = QPushButton('Check')
+        self.dataBtn = QPushButton('Upload file')
         self.dataBtn.setFixedSize(75, 30)
         self.dataBtn.clicked.connect(self.check)
 
@@ -87,22 +88,31 @@ class App(QWidget):
         model.setData(model.index(0, self.FP), file_path)
 
     def getText(self, filename):
-        try:
-            fx = filename.split(".")[-1]
-            fullText = []
-            if fx == 'docx':
-                doc = docx.Document(filename)
-                for para in doc.paragraphs:
-                    fullText.append(para.text)
-            elif fx == 'doc' or 'txt':
-                file = open(filename, "r", encoding="ascii", errors="ignore").read()
-                fullText.append(file)
-            else:
-                QMessageBox.information(self, 'Error!', 'Not A Document File!')
-                return False
-            return '\n'.join(fullText)
-        except Exception:
-            QMessageBox.information(self, 'Error!', 'Not A Document File!')
+
+        if os.path.exists(filename):
+            try:
+                fx = filename.split(".")[-1]
+                fullText = []
+                if fx == 'docx':
+                    doc = docx.Document(filename)
+                    for para in doc.paragraphs:
+                        fullText.append(para.text)
+                elif fx == 'doc':
+                    file = open(filename, "r", encoding="ascii", errors="ignore").read()
+                    fullText.append(file)
+                elif fx == 'txt':
+                    file = open(filename, "r", encoding="ascii", errors="ignore").read()
+                    fullText.append(file)
+                else:
+                    QMessageBox.warning(self, 'Error!', 'Not A Document File!')
+                    return
+                return '\n'.join(fullText)
+            except Exception:
+                QMessageBox.warning(self, 'Error!', 'Not A Document File!')
+
+
+        else:
+            pass
 
     # nltk.download('punkt')  # if necessary...
 
@@ -112,7 +122,7 @@ class App(QWidget):
     def stem_tokens(self, tokens):
         return [self.stemmer.stem(item) for item in tokens]
 
-    '''remove punctuation, lowercase, stem'''
+    # remove punctuation, lowercase, stem
 
     def normalize(self, text):
         return self.stem_tokens(nltk.word_tokenize(text.lower().translate(self.remove_punctuation_map)))
@@ -122,19 +132,19 @@ class App(QWidget):
         text22 = open(text2, 'r', encoding='utf-8', errors='ignore').read()
         tfidf = self.vectorizer.fit_transform([text11, text22])
 
-        n = (((tfidf * tfidf.T) * 100).A)[0, 1]
-        return '%.3f%% ' %n
+        n = ((tfidf * tfidf.T) * 100).A[0, 1]
+        _n = round(n, 3)
+        return _n
 
     def check(self):
         self.notify.show()
         self.model = self.createFileModel(self)
         self.dataView.setModel(self.model)
-        self.notify.setText('Checking...')
+        self.notify.setText('Processing...')
 
         try:
-            fpath = QFileDialog.getOpenFileName(self, 'Select File to check',
-                                                expanduser("~"))
-            self.notify.setText('Checking...')
+            fpath = QFileDialog.getOpenFileName(self, 'Select File to check', expanduser("~"))
+            self.notify.setText('Processing...')
 
             self.file = str(fpath[0]).replace('/', '\\')
 
@@ -143,10 +153,22 @@ class App(QWidget):
             spath = expanduser('~') + '\Desktop\Work'
 
             text = self.getText(self.file)
+            s = []
             if os.path.exists(spath):
                 for path in Path(spath).iterdir():
-                    self.addFile(self.model, os.path.basename(path), self.cosine_sim(text, path), str(path))
+                    self.addFile(self.model, os.path.basename(path), str(self.cosine_sim(text, path)), str(path))
+                    s.append(self.cosine_sim(text, path))
+                print(s)
             self.notify.setText('Done')
+
+            if any(float(x) > 90 for x in s):
+                print("Similarities found !!!...")
+                QMessageBox.information(self, ' ', 'Similarity Found !')
+
+            else:
+                print('No Similarities found!!!...')
+                QMessageBox.information(self, ' ', 'No Similarity Found !')
+
         except Exception:
             self.notify.hide()
             pass

@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/STP.iml" filepath="$PROJECT_DIR$/.idea/STP.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../StringPatternMatcher/.idea/StringPatternMatcher.iml" filepath="$PROJECT_DIR$/../StringPatternMatcher/.idea/StringPatternMatcher.iml" />
     </modules>
   </component>
 </project>
